@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools >= 80.7.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name='dmdoc-python'
+version = '0.1'
+description = "Data Model documentation generator."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    'click>=8.2.0',
+]
+
+[tool.setuptools.package-dir]
+logmaster = "./src/dmdoc"
