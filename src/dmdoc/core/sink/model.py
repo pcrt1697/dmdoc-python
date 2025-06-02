@@ -21,11 +21,12 @@ def parse_type(model) -> dict:
 
 class DataModel(BaseModel):
     id: str = Field(description="Unique identifier", pattern="[A-Za-z_][A-Za-z0-9_]*")
-    name: Optional[str] = Field(description="User friendly name")
+    name: Optional[str] = Field(description="User friendly name", default=None)
     doc: Optional[str] = Field(description="Documentation string", default=None)
     entities: list["Entity"] = Field(description="List of entities belonging to the data model", min_length=1)
-    shared_objects: list["BaseObject"] = Field(description="List of objects types shared between entities", default=None)
+    shared_objects: list["BaseObject"] = Field(description="List of objects types shared between entities", default=[])
 
+    # noinspection PyNestedDecorators
     @field_validator("entities", "shared_objects")
     @classmethod
     def check_unique_entities_and_commons(
@@ -41,11 +42,14 @@ class DataModel(BaseModel):
 
 class BaseObject(BaseModel):
     id: str = Field(description="Unique identifier")
+    aliases: list[str] = Field(description="Additional names or identifiers", default=[])
     doc: Optional[str] = Field(description="Documentation string", default=None)
     fields: list["ModelField"] = Field(description="List of fields", min_length=1)
     discriminator: Optional[str] = Field(description="Discriminator for subtypes", default=None)
     subtypes: Optional[list[str]] = Field(description="List of subtypes", default=None)
+    references: list["EntityReference"] = Field(description="External references to other entities", default=[])
 
+    # noinspection PyNestedDecorators
     @field_validator("fields")
     @classmethod
     def check_unique_fields(cls, fields: list["ModelField"]) -> list["ModelField"]:
@@ -70,29 +74,18 @@ class BaseObject(BaseModel):
         raise ValueError("Discriminator field not found in field list")
 
 
-class Entity(BaseObject):
-    references: list["EntityReference"] = Field(description="External references to other entities", default=[])
+class SharedObject(BaseObject):
+    used_by: list[str] = Field(description="Entities or objects that uses this object", default=[])
 
-    @field_validator("references")
-    @classmethod
-    def check_unique_references(cls, references: list["EntityReference"]) -> list["EntityReference"]:
-        seen_ids = set()
-        duplicates = [e for e in references if e.id in seen_ids or seen_ids.add(e.id)]
-        if len(duplicates):
-            raise ValueError(f"Duplicated references to the same entity are not allowed: {duplicates}")
-        return references
+
+class Entity(BaseObject):
+    referenced_by: list[str] = Field(description="Entities that references this entity", default=[])
 
 
 class EntityReference(BaseModel):
-    id: str = Field(description="Referenced entity")
+    id_entity: str = Field(description="Referenced entity")
+    name: Optional[str] = Field(description="Reference name", default=None)
     mapping: list["FieldReference"] = Field(description="References")
-
-    @field_validator('id', mode='before')
-    @classmethod
-    def class_to_string(cls, value: Any) -> str:
-        if isinstance(value, type):
-            return f"{value.__module__}:{value.__name__}"
-        return value
 
 
 class FieldReference(BaseModel):
@@ -107,6 +100,7 @@ class ModelField(BaseModel):
     is_key: bool = Field(description="Whether the field is part of key or not", default=False)
     is_required: bool = Field(description="Whether the field is required or not", default=False)
 
+    # noinspection PyNestedDecorators
     @model_validator(mode="before")
     @classmethod
     def parse_type(cls, model) -> dict:
@@ -172,23 +166,26 @@ class ObjectType(ComplexType, BaseObject):
 
     @model_validator(mode="after")
     def check_reference_or_definition(self):
+        # todo: check and fix this validation
         if self.fields is not None and len(self.fields) > 0:
             if self.id is not None:
                 raise ValueError("Ambiguous object definition: both fields and id provided")
         elif self.id is not None:
             if self.fields is not None and len(self.fields) > 0:
                 raise ValueError("Ambiguous object definition: both fields and id provided")
-            self.fields = self.doc = None
+            self.fields = []
         else:
             raise ValueError("No fields nor id provided")
         return self
 
 
 class EnumType(ComplexType):
+    # todo: maybe add enum identifier and manage enums like shared objects
     type: Literal["enum"] = Field(description="Type identifier")
     values: list["EnumValue"] = Field(description="List of allowed values")
     doc: Optional[str] = Field(description="Documentation string", default=None)
 
+    # noinspection PyNestedDecorators
     @field_validator("values")
     @classmethod
     def check_unique_values(cls, values: list["EnumValue"]) -> list["EnumValue"]:
@@ -208,6 +205,7 @@ class ArrayType(ComplexType):
     type: Literal["array"] = Field(description="Type identifier")
     items: "DataType" = Field(description="Data type of array items")
 
+    # noinspection PyNestedDecorators
     @model_validator(mode="before")
     @classmethod
     def parse_type(cls, model) -> dict:
@@ -223,6 +221,7 @@ class MapType(ComplexType):
     type: Literal["map"] = Field(description="Type identifier")
     values: "DataType" = Field(description="Data type of map values")
 
+    # noinspection PyNestedDecorators
     @model_validator(mode="before")
     @classmethod
     def parse_type(cls, model) -> dict:
@@ -241,8 +240,10 @@ class UnionType(ComplexType):
 
 # todo: add support for custom types
 DataType = generate_polymorphic_type(
-    BooleanType, IntegerType, LongType, FloatType, DoubleType, BytesType, StringType, DateType, DatetimeType,  # primitive types
-    EnumType, ArrayType, MapType, UnionType, ObjectType,  # complex types
+    # primitive types
+    BooleanType, IntegerType, LongType, FloatType, DoubleType, BytesType, StringType, DateType, DatetimeType,
+    # complex types
+    EnumType, ArrayType, MapType, UnionType, ObjectType,
     discriminator="type"
 )
 
