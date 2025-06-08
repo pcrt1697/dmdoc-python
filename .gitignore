@@ -175,3 +175,4 @@ cython_debug/
 
 # ignore local test script
 /test/test.py
+/scripts/output/*

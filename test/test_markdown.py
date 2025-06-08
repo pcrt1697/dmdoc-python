@@ -10,7 +10,7 @@ class TestMarkdown(unittest.TestCase):
     def test_source(self):
         source = SQLAlchemySource.create(
             {
-                "base_class": "source.sqlalchemy_model:Base",
+                "base": "source.sqlalchemy_model:Base",
                 "id": "sample_schema"
             }
         )
@@ -24,7 +24,6 @@ class TestMarkdown(unittest.TestCase):
             }
         )
         formatter.generate()
-
 
 
 if __name__ == '__main__':

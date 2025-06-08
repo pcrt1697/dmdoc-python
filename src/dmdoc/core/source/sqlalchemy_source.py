@@ -3,19 +3,20 @@ from typing import Type, Optional
 
 from pydantic import BaseModel, Field
 from sqlalchemy import Column, Table, ForeignKeyConstraint
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.orm import DeclarativeBase, registry
 
 from dmdoc.core.sink.model import DataModel, Entity, ModelField, EntityReference, FieldReference
 from dmdoc.core.source import Source
-from dmdoc.utils.importing import import_class
+from dmdoc.utils.importing import import_object
 
 _logger = logging.getLogger(__name__)
 
 
-def get_class_table_mapping(base_cls: type[DeclarativeBase]):
+def get_class_table_mapping(mapper_registry: registry):
+    # todo: test polymorphic classes
     mapping: dict[str, set[str]] = {}
     # noinspection PyProtectedMember
-    for c in base_cls.registry._class_registry.values():
+    for c in mapper_registry._class_registry.values():
         if not hasattr(c, "__tablename__"):
             continue
         table_name = getattr(c, "__tablename__")
@@ -28,9 +29,6 @@ def get_class_table_mapping(base_cls: type[DeclarativeBase]):
 
 
 def get_field_info(column: Column, is_key: bool) -> ModelField:
-    # table.c[0].name
-    # table.c[0].description
-    # table.c[0].type.python_type
     return ModelField(
         id=column.name,
         doc=column.description,
@@ -74,7 +72,10 @@ def get_entity_reference(fkc: ForeignKeyConstraint) -> EntityReference:
 
 
 class SQLAlchemySourceConfig(BaseModel):
-    base_class: str = Field(description="Path to the ORM base class defined as <package-path>:<class-name>")
+    base: str = Field(
+        description="Path to the ORM base class (extending `sqlalchemy.orm.DeclarativeBase`) for declarative mapping or"
+                    " `sqlalchemy.orm.registry` instance for imperative mapping, both defined as <package-path>:<name>"
+    )
     id: Optional[str] = Field(
         description="Unique identifier of the data model, required when the schema is not available from the code",
         pattern="[A-Za-z_][A-Za-z0-9_]*",
@@ -85,7 +86,6 @@ class SQLAlchemySourceConfig(BaseModel):
 
 
 class SQLAlchemySource(Source):
-
     _config: SQLAlchemySourceConfig
 
     @classmethod
@@ -93,14 +93,22 @@ class SQLAlchemySource(Source):
         return SQLAlchemySourceConfig
 
     def _do_process(self) -> DataModel:
-        base_cls: type[DeclarativeBase] = import_class(self._config.base_class)
-        if not issubclass(base_cls, DeclarativeBase):
-            raise ValueError(f"Base class {self._config.base_class} is not a subclass of {DeclarativeBase}")
-        _id = self._config.id or base_cls.metadata.schema
-        cls_names = get_class_table_mapping(base_cls)
+        base: type[DeclarativeBase] | registry = import_object(self._config.base)
+        if isinstance(base, type) and issubclass(base, DeclarativeBase):
+            # declarative mapping
+            mapper_registry = base.registry
+        elif not isinstance(base, type) and isinstance(base, registry):
+            # imperative mapping
+            mapper_registry = base
+        else:
+            raise ValueError(
+                f"Base object {self._config.base} is not a subclass of {DeclarativeBase} nor an instance of {registry}"
+            )
+        _id = self._config.id or base.metadata.schema
+        cls_names = get_class_table_mapping(mapper_registry)
         entities = []
-        for table_name, table in base_cls.metadata.tables.items():
-            entity = get_entity_info(table, cls_names.get(table_name))
+        for table_name, table in base.metadata.tables.items():
+            entity = get_entity_info(table, cls_names.get(table_name, []))
             entities.append(entity)
         return DataModel(
             id=_id,

@@ -1,5 +1,6 @@
 import click
 
+from dmdoc.cli.generate_cli import generate
 from dmdoc.utils.logging_manager import configure_logging
 
 
@@ -27,4 +28,4 @@ def main(log_file: str, debug: bool):
 
 
 # noinspection PyTypeChecker
-main.add_command()
+main.add_command(generate)

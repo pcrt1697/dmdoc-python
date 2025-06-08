@@ -1,0 +1,4 @@
+type: markdown
+config:
+  output_path: "./resource/out",
+  overwrite: true

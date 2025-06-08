@@ -1,0 +1,4 @@
+format: markdown
+config:
+  output_path: ${DMDOC_MD_FILEPATH}
+  overwrite: true
