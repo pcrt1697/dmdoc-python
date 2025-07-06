@@ -8,7 +8,8 @@ from mdutils import MdUtils, MDList, TextUtils
 from pydantic import BaseModel, Field
 
 from dmdoc.core.formatter import Formatter
-from dmdoc.core.sink.model import Entity, BaseObject
+from dmdoc.core.sink.data_type import DataType, ArrayDataType, MapDataType, UnionDataType, EnumDataType, ObjectDataType
+from dmdoc.core.sink.model import Entity, BaseObject, DataModelObject, DataModelEnum, DocumentationMixin
 
 _logger = logging.getLogger(__name__)
 
@@ -35,13 +36,28 @@ def get_local_link(header: str, text: str = None) -> str:
     )
 
 
-class MarkdownModelWriter:
-    _model: BaseObject
+def get_md_list(items: list):
+    return "\n".join([f"* {item}" for item in items])
 
-    def __init__(self, md_file: MdUtils, model: BaseObject, root_level: int = 1):
+
+def write_aliases(md_file: MdUtils, aliases: list):
+    if not aliases:
+        return
+    md_file.new_line("Aliases:", bold_italics_code="i")
+    bullet_points = MDList([alias for alias in aliases])
+    md_file.new_line(bullet_points.get_md())
+
+
+class MarkdownSectionWriter:
+    _model: DocumentationMixin
+
+    def __init__(
+            self,
+            md_file: MdUtils,
+            model: DocumentationMixin
+    ):
         self._md_file = md_file
         self._model = model
-        self._root_level = root_level
 
     @property
     def md_file(self):
@@ -51,24 +67,20 @@ class MarkdownModelWriter:
     def model(self):
         return self._model
 
-    @property
-    def root_level(self):
-        return self._root_level
-
-    def write_title(self):
-        self.md_file.new_header(level=self.root_level, title=self.model.id)
+    def write_title(self, title: str):
+        self.md_file.new_header(level=2, title=title)
 
     def write_aliases(self):
-        if not self.model.aliases:
-            return
-        self.md_file.new_line("Aliases:", bold_italics_code="i")
-        bullet_points = MDList([alias for alias in self.model.aliases])
-        self.md_file.new_line(bullet_points.get_md())
+        write_aliases(self.md_file, self.model.aliases)
 
     def write_description(self):
         if not self.model.doc:
             return
         self.md_file.new_paragraph(self.model.doc)
+
+
+class MarkdownObjectWriter(MarkdownSectionWriter):
+    _model: DataModelObject | Entity
 
     def write_fields(self):
         text = ["Field name", "Data type", "Required", "Description"] + [
@@ -76,33 +88,62 @@ class MarkdownModelWriter:
             for field in self.model.fields
             for table_cell in [
                 TextUtils.inline_code(field.id) if field.is_key else TextUtils.bold(field.id),
-                field.type.type,
+                self._type_to_text(field.type),
                 MDSymbol.CHECK_MARK.value if field.is_required else " ",
-                field.doc
+                field.doc or " "
             ]
         ]
-        self.md_file.new_header(level=self.root_level+1, title="List of fields")
+        self.md_file.new_header(level=3, title="List of fields")
         self.md_file.new_table(
             4,
             len(self.model.fields) + 1,
             text
         )
 
-    def write_nested_objects(self):
-        # todo: implement this
-        pass
+    def _type_to_text(self, data_type: DataType):
+        match data_type.type:
+            case "array":
+                return self._array_to_text(data_type)
+            case "map":
+                return self._map_to_text(data_type)
+            case "union":
+                return self._union_to_text(data_type)
+            case "enum":
+                return self._enum_to_text(data_type)
+            case "object":
+                return self._object_to_text(data_type)
+            case _:
+                return data_type.type
+
+    def _array_to_text(self, data_type: ArrayDataType):
+        return f"array<{self._type_to_text(data_type.items)}>"
+
+    def _map_to_text(self, data_type: MapDataType):
+        return f"map<{self._type_to_text(data_type.values)}>"
+
+    def _union_to_text(self, data_type: UnionDataType):
+        _types = ", ".join([
+            self._type_to_text(_type)
+            for _type in data_type.types
+        ])
+        return f"union[{_types}]"
+
+    def _enum_to_text(self, data_type: EnumDataType):
+        return data_type.id
+
+    def _object_to_text(self, data_type: ObjectDataType):
+        return data_type.id
 
     def write_references(self):
-        self.md_file.new_header(level=self.root_level+1, title="External references")
+        self.md_file.new_header(level=3, title="External references")
         items = []
         if self.model.references:
             for reference in self.model.references:
-                reference_name = (
-                    reference.id_entity
-                    if reference.name is None
-                    else f"{TextUtils.bold(reference.name)} ({reference.id_entity})"
-                )
-                items.append(get_local_link(reference_name))
+                reference_text = get_local_link(reference.id_entity)
+                if reference.name is not None:
+                    reference_text = f"{TextUtils.bold(reference.name)} ({reference_text})"
+
+                items.append(reference_text)
                 items.append(
                     [
                         f"{mapping.source}: {mapping.destination}"
@@ -114,13 +155,37 @@ class MarkdownModelWriter:
         )
 
 
-class MarkdownEntityWriter(MarkdownModelWriter):
+class MarkdownEntityWriter(MarkdownObjectWriter):
     _model = Entity
 
-    def __init__(self, md_file: MdUtils, model: Entity, root_level: int = 1):
-        super().__init__(md_file, model, root_level)
-
     def write_referenced_by(self):
+        pass
+
+
+class MarkdownSharedObjectWriter(MarkdownObjectWriter):
+    _model = DataModelObject
+
+    def write_used_by(self):
+        # todo: implement this
+        pass
+
+
+class MarkdownEnumWriter(MarkdownSectionWriter):
+    _model = DataModelEnum
+
+    def write_values(self):
+        self.md_file.new_header(level=3, title="Values")
+        items = []
+        for value in self._model.values:
+            item_text = TextUtils.bold(value.value)
+            if value.doc:
+                f"{item_text}: {value.doc}"
+            items.append(item_text)
+        self.md_file.new_paragraph(
+            get_md_list(items)
+        )
+
+    def write_used_by(self):
         # todo: implement this
         pass
 
@@ -151,6 +216,7 @@ class MarkdownFormatter(Formatter):
                 os.remove(self._config.output_path)
 
     def _do_generate(self):
+        # todo: raise for duplicated enum/object names
         md_file = MdUtils(
             file_name=self._config.output_path,
             title=self._data_model.name or self._data_model.id
@@ -161,37 +227,42 @@ class MarkdownFormatter(Formatter):
         self._finalize(md_file)
 
     def _write_entities(self, md_file: MdUtils):
-        entity_root_level = 1
-        if self._data_model.shared_objects:
+        if self._data_model.objects or self._data_model.enums:
             md_file.new_header(level=1, title="Entities")
-            entity_root_level = 2
-        for entity in self._data_model.entities:
-            entity_writer = MarkdownEntityWriter(md_file, entity, root_level=entity_root_level)
-            entity_writer.write_title()
+        for name, entity in self._data_model.entities.items():
+            entity_writer = MarkdownEntityWriter(
+                md_file,
+                entity
+            )
+            entity_writer.write_title(name)
             entity_writer.write_aliases()
             entity_writer.write_description()
             entity_writer.write_fields()
-            entity_writer.write_nested_objects()
             entity_writer.write_references()
             entity_writer.write_referenced_by()
 
     def _finalize(self, md_file: MdUtils):
-        toc_depth = 1
-        if self._data_model.shared_objects:
-            toc_depth = 2
-            self._write_shared_objects(md_file)
-        md_file.new_table_of_contents(table_title='Index', depth=toc_depth)
+        self._write_objects(md_file)
+        self._write_enums(md_file)
+
+        md_file.new_table_of_contents(table_title='Index', depth=2)
         md_file.create_md_file()
 
-    def _write_shared_objects(self, md_file: MdUtils):
-        md_file.new_header(level=1, title="Shared objects")
-        for obj in self._data_model.shared_objects:
-            entity_writer = MarkdownModelWriter(md_file, obj, root_level=2)
-            entity_writer.write_title()
+    def _write_objects(self, md_file: MdUtils):
+        md_file.new_header(level=1, title="Objects")
+        for name, obj in self._data_model.objects.items():
+            entity_writer = MarkdownSharedObjectWriter(md_file, obj)
+            entity_writer.write_title(name)
             entity_writer.write_aliases()
             entity_writer.write_description()
             entity_writer.write_fields()
-            entity_writer.write_nested_objects()
             entity_writer.write_references()
 
-
+    def _write_enums(self, md_file: MdUtils):
+        md_file.new_header(level=1, title="Enums")
+        for name, obj in self._data_model.enums.items():
+            entity_writer = MarkdownEnumWriter(md_file, obj)
+            entity_writer.write_title(name)
+            entity_writer.write_aliases()
+            entity_writer.write_description()
+            entity_writer.write_values()

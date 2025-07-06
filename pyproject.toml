@@ -31,5 +31,23 @@ beanie = [
 [project.entry-points."dmdoc.sources"]
 sqlalchemy = "dmdoc.core.source.sqlalchemy_source:SQLAlchemySource"
 
+[project.entry-points."dmdoc.sink.datatypes"]
+# primitive types
+boolean = "dmdoc.core.sink.data_type:BooleanDataType"
+integer = "dmdoc.core.sink.data_type:IntegerDataType"
+number = "dmdoc.core.sink.data_type:NumberDataType"
+bytes = "dmdoc.core.sink.data_type:BytesDataType"
+string = "dmdoc.core.sink.data_type:StringDataType"
+date = "dmdoc.core.sink.data_type:DateDataType"
+datetime = "dmdoc.core.sink.data_type:DatetimeDataType"
+time = "dmdoc.core.sink.data_type:TimeDataType"
+# complex types
+enum = "dmdoc.core.sink.data_type:EnumDataType"
+array = "dmdoc.core.sink.data_type:ArrayDataType"
+map = "dmdoc.core.sink.data_type:MapDataType"
+union = "dmdoc.core.sink.data_type:UnionDataType"
+object = "dmdoc.core.sink.data_type:ObjectDataType"
+objectId = "dmdoc.core.sink.data_type:ObjectIdDataType"
+
 [project.entry-points."dmdoc.formats"]
 markdown = "dmdoc.core.formatter.markdown_formatter:MarkdownFormatter"

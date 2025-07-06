@@ -2,19 +2,18 @@ import os
 import unittest
 
 from dmdoc.core.formatter.markdown_formatter import MarkdownFormatter
-from dmdoc.core.source.sqlalchemy_source import SQLAlchemySource
+from dmdoc.core.source.beanie_source import BeanieSource
 
 
 class TestMarkdown(unittest.TestCase):
 
     def test_source(self):
-        source = SQLAlchemySource.create(
-            {
-                "base": "source.sqlalchemy_model:Base",
-                "id": "sample_schema"
-            }
-        )
-        dm = source.process()
+        config_dict = {
+            "classes": "source.beanie_model:document_models",
+            "id": "sample_schema"
+        }
+        source = BeanieSource.create(config_dict)
+        dm = source.generate_data_model()
         this_dir = os.path.dirname(os.path.realpath(__file__))
         formatter = MarkdownFormatter.create(
             dm,

@@ -12,8 +12,10 @@ from dmdoc.utils.importing import import_object
 _logger = logging.getLogger(__name__)
 
 
+# todo: fix this implementation that refers to old DataModel schema
+
 def get_class_table_mapping(mapper_registry: registry):
-    # todo: test polymorphic classes
+    # todo: add support for polymorphic classes
     mapping: dict[str, set[str]] = {}
     # noinspection PyProtectedMember
     for c in mapper_registry._class_registry.values():
@@ -32,7 +34,7 @@ def get_field_info(column: Column, is_key: bool) -> ModelField:
     return ModelField(
         id=column.name,
         doc=column.description,
-        type="string",
+        type="string",  # todo: manage this
         is_key=is_key,
         is_required=column.nullable
     )
@@ -92,7 +94,7 @@ class SQLAlchemySource(Source):
     def get_config_class(cls) -> Type[BaseModel]:
         return SQLAlchemySourceConfig
 
-    def _do_process(self) -> DataModel:
+    def _do_generate(self) -> DataModel:
         base: type[DeclarativeBase] | registry = import_object(self._config.base)
         if isinstance(base, type) and issubclass(base, DeclarativeBase):
             # declarative mapping

@@ -15,3 +15,7 @@ def get_reverse_references(id_entity: str, data_model: DataModel):
         if current_references:
             references[entity.id] = current_references
     return references
+
+
+def get_python_class_id(python_class: type):
+    return f"{python_class.__module__}.{python_class.__name__}"

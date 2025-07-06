@@ -14,20 +14,20 @@ class Source(abc.ABC):
     def __init__(self, config: BaseModel):
         self._config = config
 
-    def process(self) -> DataModel:
+    def generate_data_model(self) -> DataModel:
         """ Generate the data model. """
         _logger.info("Started processing source [%s]", self.__class__.__name__)
-        self._before_process()
-        data_model = self._do_process()
+        self._before_generate()
+        data_model = self._do_generate()
         self.__validate(data_model)
         return data_model
 
-    def _before_process(self):
+    def _before_generate(self):
         """ Executed before precessing. Override if needed, e.g. to apply some validation. """
         pass
 
     @abc.abstractmethod
-    def _do_process(self) -> DataModel:
+    def _do_generate(self) -> DataModel:
         """ Actual implementation to produce the data model. """
         ...
 

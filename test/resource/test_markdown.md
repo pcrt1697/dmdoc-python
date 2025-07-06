@@ -5,45 +5,95 @@ sample_schema
 Index
 =====
 
-* [user_account](#user_account)
-* [address](#address)
+* [Entities](#entities)
+	* [samples](#samples)
+	* [ReferencedDocument](#referenceddocument)
+* [Objects](#objects)
+	* [NestedObject](#nestedobject)
+* [Enums](#enums)
+	* [SampleEnum](#sampleenum)
 
-# user_account
+# Entities
+
+## samples
   
 *Aliases:*  
-- sqlalchemy_sample.model:User
+- source.beanie_model.SampleDocument
 
 
-user_account
-## List of fields
+Sample docstring
+### List of fields
 
 |Field name|Data type|Required|Description|
 | :---: | :---: | :---: | :---: |
-|``id``|string| |id|
-|**name**|string| |name|
-|**fullname**|string|:heavy_check_mark:|fullname|
+|**id**|objectId| |MongoDB document ObjectID|
+|**string_field**|string|:heavy_check_mark:|Sample description|
+|**bool_field**|boolean|:heavy_check_mark:| |
+|**bytes_field**|bytes|:heavy_check_mark:| |
+|**float_field**|number|:heavy_check_mark:| |
+|**decimal_field**|number|:heavy_check_mark:| |
+|**integer_field**|integer|:heavy_check_mark:| |
+|**datetime_field**|datetime|:heavy_check_mark:| |
+|**date_field**|date|:heavy_check_mark:| |
+|**time_field**|time|:heavy_check_mark:| |
+|**enum_field**|SampleEnum|:heavy_check_mark:| |
+|**union_field**|union[integer, string]|:heavy_check_mark:| |
+|**optional_field**|string|:heavy_check_mark:| |
+|**map_field**|array[string]|:heavy_check_mark:| |
+|**list_array_field**|array[string]|:heavy_check_mark:| |
+|**set_array_field**|array[string]|:heavy_check_mark:| |
+|**tuple_array_field**|array[string]|:heavy_check_mark:| |
+|**object_field**|NestedObject|:heavy_check_mark:| |
+|**mixed_array_field**|array[union[integer, string]]|:heavy_check_mark:| |
 
-## External references
+### External references
 
 
+- [ReferencedDocument](#referenceddocument)
+    - string_field: _id
 
-# address
+## ReferencedDocument
   
 *Aliases:*  
-- sqlalchemy_sample.model:Address
+- source.beanie_model.ReferencedDocument
 
-
-address
-## List of fields
+### List of fields
 
 |Field name|Data type|Required|Description|
 | :---: | :---: | :---: | :---: |
-|``id``|string| |id|
-|**email_address**|string| |email_address|
-|**user_id**|string| |user_id|
+|**id**|objectId| |MongoDB document ObjectID|
 
-## External references
+### External references
 
 
-- [user_account](#user_account)
-    - user_id: id
+
+# Objects
+
+## NestedObject
+  
+*Aliases:*  
+- source.beanie_model.NestedObject
+
+### List of fields
+
+|Field name|Data type|Required|Description|
+| :---: | :---: | :---: | :---: |
+|**string_field**|string|:heavy_check_mark:| |
+
+### External references
+
+
+
+# Enums
+
+## SampleEnum
+  
+*Aliases:*  
+- source.beanie_model.SampleEnum
+
+### Values
+
+
+* **first**
+* **second**
+* **third**

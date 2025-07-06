@@ -1,39 +1,15 @@
 import logging
-from importlib.metadata import entry_points
-from typing import TypeVar
 
 from dmdoc.core.formatter import Formatter
 from dmdoc.core.sink.model import DataModel
 from dmdoc.core.source import Source
 from dmdoc.utils.file import is_yaml_file, read_yaml_with_envvars
-from dmdoc.utils.importing import import_object
+from dmdoc.utils.importing import resolve_entrypoint_class
 
 _logger = logging.getLogger(__name__)
 
 _SOURCE_ENTRYPOINTS_PATH = "dmdoc.sources"
 _FORMATS_ENTRYPOINTS_PATH = "dmdoc.formats"
-
-
-_T = TypeVar("_T")
-
-
-def resolve_entrypoint_class(name: str, group: str, parent_class: type[_T]) -> type[_T]:
-    entrypoints = entry_points(name=name, group=group)
-    try:
-        entrypoint = entrypoints[name]
-    except Exception as e:
-        raise ValueError(f"Cannot find entrypoint named `{name}` belonging to group `{group}`") from e
-    try:
-        _class = import_object(entrypoint.value)
-    except ImportError as ie:
-        raise ValueError(
-            f"Failed to import entrypoint class with name `{name}`: maybe an optional dependency is not installed"
-        ) from ie
-    except Exception as e:
-        raise ValueError(f"Failed to import entrypoint class with key `{name}`") from e
-    if not issubclass(_class, parent_class):
-        raise ValueError(f"Invalid entrypoint class for key `{name}` {_class}: it must inherit from {parent_class}")
-    return _class
 
 
 def load_source(source_filepath: str) -> Source:
@@ -79,6 +55,6 @@ def generate_documentation(source_filepath: str, formatter_filepath: str):
     if not is_yaml_file(formatter_filepath):
         raise ValueError(f"Formatter filepath is not a YAML file [{formatter_filepath}]")
     source = load_source(source_filepath)
-    data_model = source.process()
+    data_model = source.generate_data_model()
     formatter = load_formatter(formatter_filepath, data_model)
     formatter.generate()
