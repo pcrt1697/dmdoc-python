@@ -173,6 +173,5 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
-# ignore local test script
-/test/test.py
-/scripts/output/*
+# drawio
+/docs/.$*

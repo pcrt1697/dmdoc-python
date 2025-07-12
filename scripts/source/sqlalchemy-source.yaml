@@ -1,4 +1,0 @@
-type: sqlalchemy
-config:
-  base: "source.sqlalchemy_model:Base"
-  id: "sample_schema"

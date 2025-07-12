@@ -1,0 +1,5 @@
+type: sqlalchemy
+config:
+  id: "sample_schema"
+  name: "SQLAlchemy Model - Declarative mapping"
+  base: "source.sqlalchemy_model:Base"

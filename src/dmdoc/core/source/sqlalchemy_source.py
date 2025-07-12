@@ -1,21 +1,25 @@
+import enum
 import logging
 from typing import Type, Optional
 
 from pydantic import BaseModel, Field
 from sqlalchemy import Column, Table, ForeignKeyConstraint
 from sqlalchemy.orm import DeclarativeBase, registry
+from sqlalchemy.sql import sqltypes
 
-from dmdoc.core.sink.model import DataModel, Entity, ModelField, EntityReference, FieldReference
+from dmdoc.core.sink.data_type import DataType, create_datatype, EnumValue
+from dmdoc.core.sink.model import (
+    DataModel, Entity, ModelField, EntityReference, FieldReference, DataModelEnum,
+    get_python_class_id
+)
 from dmdoc.core.source import Source
+from dmdoc.utils.exception import DataTypeResolutionError
 from dmdoc.utils.importing import import_object
 
 _logger = logging.getLogger(__name__)
 
 
-# todo: fix this implementation that refers to old DataModel schema
-
 def get_class_table_mapping(mapper_registry: registry):
-    # todo: add support for polymorphic classes
     mapping: dict[str, set[str]] = {}
     # noinspection PyProtectedMember
     for c in mapper_registry._class_registry.values():
@@ -28,34 +32,6 @@ def get_class_table_mapping(mapper_registry: registry):
         else:
             mapping[table_name] = {full_cls_name}
     return mapping
-
-
-def get_field_info(column: Column, is_key: bool) -> ModelField:
-    return ModelField(
-        id=column.name,
-        doc=column.description,
-        type="string",  # todo: manage this
-        is_key=is_key,
-        is_required=column.nullable
-    )
-
-
-def get_entity_info(table: Table, aliases: set[str]) -> Entity:
-    fields = [
-        get_field_info(c, table.primary_key.contains_column(c))
-        for c in table.c.values()
-    ]
-    references = [
-        get_entity_reference(fk)
-        for fk in table.foreign_key_constraints
-    ]
-    return Entity(
-        id=table.name,
-        aliases=aliases,
-        doc=table.description,
-        fields=fields,
-        references=references
-    )
 
 
 def get_entity_reference(fkc: ForeignKeyConstraint) -> EntityReference:
@@ -90,6 +66,10 @@ class SQLAlchemySourceConfig(BaseModel):
 class SQLAlchemySource(Source):
     _config: SQLAlchemySourceConfig
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._enums: dict[str, "DataModelEnum"] = {}
+
     @classmethod
     def get_config_class(cls) -> Type[BaseModel]:
         return SQLAlchemySourceConfig
@@ -108,13 +88,84 @@ class SQLAlchemySource(Source):
             )
         _id = self._config.id or base.metadata.schema
         cls_names = get_class_table_mapping(mapper_registry)
-        entities = []
+        entities = {}
         for table_name, table in base.metadata.tables.items():
-            entity = get_entity_info(table, cls_names.get(table_name, []))
-            entities.append(entity)
+            entities[table_name] = self.get_entity_info(table, cls_names.get(table_name, []))
         return DataModel(
             id=_id,
             name=self._config.name or _id,
             doc=self._config.doc,
-            entities=entities
+            entities=entities,
+            enums=self._enums
+        )
+
+    def get_data_type(self, column: Column) -> DataType:
+        _type = type(column.type)
+        match _type:
+            case sqltypes.String:
+                return create_datatype(type="string")
+            case sqltypes.DateTime:
+                return create_datatype(type="datetime")
+            case sqltypes.Date:
+                return create_datatype(type="date")
+            case sqltypes.Time:
+                return create_datatype(type="time")
+            case sqltypes.Integer:
+                return create_datatype(type="integer")
+            case sqltypes.Float | sqltypes.Numeric:
+                return create_datatype(type="number")
+            case sqltypes.Boolean:
+                return create_datatype(type="boolean")
+            case sqltypes.LargeBinary:
+                return create_datatype(type="bytes")
+            case sqltypes.Enum:
+                # noinspection PyTypeChecker
+                return self.get_enum_type(column.type.python_type)
+            case _:
+                raise DataTypeResolutionError(
+                    f"Unable to find suitable data type for column "
+                    "`[{column.table.name}].[{column.name}]`: {column.type}"
+                )
+
+    def get_enum_type(self, enum_class: type[enum.Enum]):
+        if enum_class.__name__ not in self._enums:
+            self._enums[enum_class.__name__] = DataModelEnum(
+                aliases=[get_python_class_id(enum_class)],
+                values={
+                    EnumValue(
+                        name=value.name,
+                        value=str(value.value)
+                    )
+                    for value in enum_class
+                }
+            )
+        return create_datatype(
+            type="enum",
+            id=enum_class.__name__
+        )
+
+    def get_field_info(self, column: Column, is_key: bool) -> ModelField:
+        return ModelField(
+            name=column.name,
+            doc=column.comment,
+            type=self.get_data_type(column),
+            is_key=is_key,
+            is_required=not column.nullable
+        )
+
+    def get_entity_info(self, table: Table, aliases: set[str]) -> Entity:
+        fields = {
+            c.name: self.get_field_info(c, table.primary_key.contains_column(c))
+            for c in table.c.values()
+        }
+        references = [
+            get_entity_reference(fk)
+            for fk in table.foreign_key_constraints
+        ]
+        return Entity(
+            id=table.name,
+            aliases=aliases,
+            doc=table.comment,
+            fields=fields,
+            references=references
         )

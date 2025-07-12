@@ -31,6 +31,7 @@ class BaseDataType(BaseModel, abc.ABC):
 class PrimitiveType(BaseDataType, abc.ABC):
     @model_serializer
     def serialize(self) -> str:
+        # short representation
         return self.type
 
 
@@ -77,7 +78,8 @@ class EnumDataType(BaseDataType):
 
 
 class EnumValue(BaseModel):
-    value: str | int = Field(description="Value identifier that must match the regex: [A-Za-z0-9_]*")
+    name: str = Field(description="User friendly value name")
+    value: str = Field(description="Value identifier that must match the regex: [A-Za-z0-9_]*")
     doc: Optional[str] = Field(description="Documentation string", default=None)
 
     def __hash__(self):
@@ -102,7 +104,6 @@ class ArrayDataType(BaseDataType):
 
 class MapDataType(BaseDataType):
     type: Literal["map"] = Field(description="Type identifier")
-    keys: "DataType" = Field(description="Data type of map keys")
     values: "DataType" = Field(description="Data type of map values")
 
     # noinspection PyNestedDecorators

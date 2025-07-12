@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [tool.setuptools.package-dir]
-logmaster = "./src/dmdoc"
+dmdoc = "./src/dmdoc"
 
 [project.optional-dependencies]
 markdown = [
@@ -30,6 +30,7 @@ beanie = [
 
 [project.entry-points."dmdoc.sources"]
 sqlalchemy = "dmdoc.core.source.sqlalchemy_source:SQLAlchemySource"
+beanie = "dmdoc.core.source.beanie_source:BeanieSource"
 
 [project.entry-points."dmdoc.sink.datatypes"]
 # primitive types
@@ -51,3 +52,6 @@ objectId = "dmdoc.core.sink.data_type:ObjectIdDataType"
 
 [project.entry-points."dmdoc.formats"]
 markdown = "dmdoc.core.formatter.markdown_formatter:MarkdownFormatter"
+
+[project.scripts]
+dmdoc = "dmdoc.cli.entrypoints:main"

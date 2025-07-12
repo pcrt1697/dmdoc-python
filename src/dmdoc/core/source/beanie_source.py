@@ -7,8 +7,7 @@ from beanie import Document, PydanticObjectId
 from pydantic import BaseModel, Field
 
 from dmdoc.core.sink.data_type import create_datatype, EnumValue
-from dmdoc.core.sink.model import DataModel, Entity, ModelField, DataModelObject, DataModelEnum
-from dmdoc.core.sink.util import get_python_class_id
+from dmdoc.core.sink.model import DataModel, Entity, ModelField, DataModelObject, DataModelEnum, get_python_class_id
 from dmdoc.core.source import Source
 from dmdoc.utils.exception import DataTypeResolutionError
 from dmdoc.utils.importing import import_object
@@ -87,22 +86,6 @@ class BeanieSource(Source):
             values=self._resolve_type(annotation_args.pop())
         )
 
-    def _convert_enum(self, enum_class: type[Enum]):
-        full_name = get_python_class_id(enum_class)
-        self._enums[enum_class.__name__] = DataModelEnum(
-            aliases=[full_name],
-            values={
-                EnumValue(
-                    value=str(value.value)
-                )
-                for value in enum_class
-            }
-        )
-        return create_datatype(
-            type="enum",
-            id=enum_class.__name__
-        )
-
     def _convert_array(self, annotation_args: set):
         if len(annotation_args) != 1:
             raise DataTypeResolutionError(f"Expected exactly one annotation argument, found [{annotation_args}]")
@@ -129,14 +112,31 @@ class BeanieSource(Source):
             ]
         )
 
+    def _convert_enum(self, enum_class: type[Enum]):
+        if enum_class.__name__ not in self._enums:
+            self._enums[enum_class.__name__] = DataModelEnum(
+                aliases=[get_python_class_id(enum_class)],
+                values={
+                    EnumValue(
+                        name=value.name,
+                        value=str(value.value)
+                    )
+                    for value in enum_class
+                }
+            )
+        return create_datatype(
+            type="enum",
+            id=enum_class.__name__
+        )
+
     def _convert_object(self, python_class: type[BaseModel]):
         full_name = get_python_class_id(python_class)
-        self._objects[python_class.__name__] = DataModelObject(
-            aliases=[full_name],
-            fields=self._extract_fields(python_class),
-            doc=_get_doc_from_model_class(python_class),
-            references=_get_references_from_model_class(python_class)
-        )
+        if full_name not in self._objects:
+            self._objects[python_class.__name__] = DataModelObject(
+                aliases=[full_name],
+                fields=self._extract_fields(python_class),
+                doc=_get_doc_from_model_class(python_class)
+            )
         return create_datatype(
             type="object",
             id=python_class.__name__
@@ -197,22 +197,21 @@ class BeanieSource(Source):
         return self._create_type_from_python_class(annotation_args.pop())
 
     def _extract_fields(self, model_class: type[BaseModel]):
-        fields = []
-        for _id, field_info in model_class.model_fields.items():
+        model_class.model_rebuild()
+        fields = {}
+        for name, field_info in model_class.model_fields.items():
             if field_info.exclude:
                 # e.g. revision_id
                 continue
             try:
                 data_type = self._resolve_type(field_info.annotation)
             except Exception as e:
-                raise DataTypeResolutionError(f"Failed to resolve type for field `{_id}`") from e
-            fields.append(
-                ModelField(
-                    id=_id,
-                    type=data_type,
-                    doc=field_info.description,
-                    is_required=field_info.is_required()
-                )
+                raise DataTypeResolutionError(f"Failed to resolve type for field `{name}`") from e
+            fields[name] = ModelField(
+                name=name,
+                type=data_type,
+                doc=field_info.description,
+                is_required=field_info.is_required()
             )
         return fields
 

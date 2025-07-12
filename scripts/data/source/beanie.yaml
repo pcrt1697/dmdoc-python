@@ -1,0 +1,5 @@
+type: beanie
+config:
+  id: "sample_schema"
+  name: "Beanie data model"
+  classes: "source.beanie_model:document_models"

@@ -1,0 +1,5 @@
+type: sqlalchemy
+config:
+  id: "sample_schema"
+  name: "SQLAlchemy Model - Imperative mapping"
+  base: "source.sqlalchemy_model:mapper_registry"

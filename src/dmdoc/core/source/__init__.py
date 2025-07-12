@@ -1,1 +1,1 @@
-from dmdoc.core.source.source import Source
+from dmdoc.core.source._source import Source

@@ -19,7 +19,6 @@ class Source(abc.ABC):
         _logger.info("Started processing source [%s]", self.__class__.__name__)
         self._before_generate()
         data_model = self._do_generate()
-        self.__validate(data_model)
         return data_model
 
     def _before_generate(self):
@@ -45,7 +44,3 @@ class Source(abc.ABC):
         else:
             config = cls.get_config_class().model_validate(config_dict)
         return cls(config=config)
-
-    def __validate(self, data_model: DataModel):
-        # todo: implement validation
-        pass

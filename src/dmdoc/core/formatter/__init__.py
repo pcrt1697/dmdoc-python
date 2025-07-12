@@ -1,1 +1,1 @@
-from dmdoc.core.formatter.formatter import Formatter
+from dmdoc.core.formatter._formatter import Formatter
