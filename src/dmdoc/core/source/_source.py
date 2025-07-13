@@ -14,30 +14,33 @@ class Source(abc.ABC):
     def __init__(self, config: BaseModel):
         self._config = config
 
-    def generate_data_model(self) -> DataModel:
-        """ Generate the data model. """
+    def parse(self) -> DataModel:
+        """ Parse the source data model to sink DataModel. """
+
         _logger.info("Started processing source [%s]", self.__class__.__name__)
-        self._before_generate()
-        data_model = self._do_generate()
+        self._before_parse()
+        data_model = self._do_parse()
         return data_model
 
-    def _before_generate(self):
+    def _before_parse(self):
         """ Executed before precessing. Override if needed, e.g. to apply some validation. """
         pass
 
     @abc.abstractmethod
-    def _do_generate(self) -> DataModel:
+    def _do_parse(self) -> DataModel:
         """ Actual implementation to produce the data model. """
         ...
 
     @classmethod
     @abc.abstractmethod
     def get_config_class(cls) -> Type[BaseModel]:
-        """ Actual implementation to produce the data model. """
+        """ Returns the configuration class used by this source. """
         ...
 
     @classmethod
     def create(cls: Type["Source"], config_dict: dict) -> "Source":
+        """ Utility method to create a new instance. """
+
         config_cls = cls.get_config_class()
         if config_cls is None:
             config = None

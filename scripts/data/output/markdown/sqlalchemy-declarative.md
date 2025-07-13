@@ -167,10 +167,10 @@ Table that contains all users
 ### External references
 
 
-- [products](#products)
-    - id_product: id
 - [orders](#orders)
     - id_order: id
+- [products](#products)
+    - id_product: id
 
 ## countries
 
@@ -208,9 +208,9 @@ No object is defined
 ### Values
 
 
-* **VISA**
-* **AMERICAN_EXPRESS**
 * **MASTERCARD**
+* **AMERICAN_EXPRESS**
+* **VISA**
 ## OrderStatus
   
 *Aliases:*  
@@ -220,6 +220,6 @@ No object is defined
 
 
 * **CREATED [2]**
-* **DRAFT [1]**
-* **SHIPPED [3]**
 * **DELIVERED [4]**
+* **SHIPPED [3]**
+* **DRAFT [1]**

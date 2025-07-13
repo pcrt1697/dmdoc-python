@@ -167,10 +167,10 @@ Table that contains all users
 ### External references
 
 
-- [products](#products)
-    - id_product: id
 - [orders](#orders)
     - id_order: id
+- [products](#products)
+    - id_product: id
 
 ## countries
 
@@ -197,9 +197,9 @@ No object is defined
 ### Values
 
 
+* **IT**
 * **DE**
 * **US**
-* **IT**
 ## CardVendor
   
 *Aliases:*  
@@ -219,7 +219,7 @@ No object is defined
 ### Values
 
 
-* **DRAFT [1]**
 * **CREATED [2]**
-* **DELIVERED [4]**
+* **DRAFT [1]**
 * **SHIPPED [3]**
+* **DELIVERED [4]**

@@ -1,6 +1,6 @@
 import logging
 
-from dmdoc.core.formatter import Formatter
+from dmdoc.core.format import Format
 from dmdoc.core.sink.model import DataModel
 from dmdoc.core.source import Source
 from dmdoc.utils.file import is_yaml_file, read_yaml_with_envvars
@@ -29,32 +29,32 @@ def load_source(source_filepath: str) -> Source:
     return source_class.create(config_dict=config)
 
 
-def load_formatter(formatter_filepath: str, data_model: DataModel) -> Formatter:
-    if not is_yaml_file(formatter_filepath):
-        raise ValueError(f"Formatter filepath is not a YAML file [{formatter_filepath}]")
-    formatter_dict = read_yaml_with_envvars(formatter_filepath)
-    format_type = formatter_dict.get("format")
+def load_format(format_filepath: str, data_model: DataModel) -> Format:
+    if not is_yaml_file(format_filepath):
+        raise ValueError(f"Format filepath is not a YAML file [{format_filepath}]")
+    format_dict = read_yaml_with_envvars(format_filepath)
+    format_type = format_dict.get("format")
     if format_type is None:
-        raise ValueError(f"Missing required format type identifier `format` [{formatter_filepath}]")
-    _logger.info(f"Loading formatter class for type `{format_type}`")
-    formatter_class: type[Formatter] = resolve_entrypoint_class(
+        raise ValueError(f"Missing required format type identifier `format` [{format_filepath}]")
+    _logger.info(f"Loading format class for type `{format_type}`")
+    format_class: type[Format] = resolve_entrypoint_class(
         name=format_type,
         group=_FORMATS_ENTRYPOINTS_PATH,
-        parent_class=Formatter
+        parent_class=Format
     )
-    config = formatter_dict.get("config")
-    return formatter_class.create(
+    config = format_dict.get("config")
+    return format_class.create(
         data_model=data_model,
         config_dict=config
     )
 
 
-def generate_documentation(source_filepath: str, formatter_filepath: str):
+def generate_documentation(source_filepath: str, format_filepath: str):
     if not is_yaml_file(source_filepath):
         raise ValueError(f"Source filepath is not a YAML file [{source_filepath}]")
-    if not is_yaml_file(formatter_filepath):
-        raise ValueError(f"Formatter filepath is not a YAML file [{formatter_filepath}]")
+    if not is_yaml_file(format_filepath):
+        raise ValueError(f"Format filepath is not a YAML file [{format_filepath}]")
     source = load_source(source_filepath)
-    data_model = source.generate_data_model()
-    formatter = load_formatter(formatter_filepath, data_model)
-    formatter.generate()
+    data_model = source.parse()
+    format_ = load_format(format_filepath, data_model)
+    format_.generate()

@@ -45,7 +45,7 @@ class BeanieSource(Source):
     _config: BeanieSourceConfig
 
     @classmethod
-    def get_config_class(cls) -> Type[BaseModel]:
+    def get_config_class(cls) -> type[BeanieSourceConfig]:
         return BeanieSourceConfig
 
     def __init__(self, *args, **kwargs):
@@ -53,7 +53,7 @@ class BeanieSource(Source):
         self._objects: dict[str, "DataModelObject"] = {}
         self._enums: dict[str, "DataModelEnum"] = {}
 
-    def _do_generate(self) -> DataModel:
+    def _do_parse(self) -> DataModel:
         document_classes: Iterable[type[Document]] = import_object(self._config.classes)
         if not isinstance(document_classes, Iterable):
             raise ValueError(

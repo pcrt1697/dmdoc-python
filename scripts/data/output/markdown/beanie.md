@@ -176,8 +176,8 @@ Index
 ### Values
 
 
-* **IT**
 * **US**
+* **IT**
 * **DE**
 ## CardVendor
   
@@ -198,7 +198,7 @@ Index
 ### Values
 
 
+* **SHIPPED [3]**
+* **DRAFT [1]**
 * **DELIVERED [4]**
 * **CREATED [2]**
-* **DRAFT [1]**
-* **SHIPPED [3]**

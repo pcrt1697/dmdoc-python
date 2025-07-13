@@ -14,9 +14,9 @@ from dmdoc.core.generator import generate_documentation
 @click.option(
     "-f",
     "--format",
-    "formatter",
+    "format_",
     type=str,
-    help="Path to the formatter configuration file."
+    help="Path to the format configuration file."
 )
-def generate(source: str, formatter: str):
-    generate_documentation(source_filepath=source, formatter_filepath=formatter)
+def generate(source: str, format_: str):
+    generate_documentation(source_filepath=source, format_filepath=format_)

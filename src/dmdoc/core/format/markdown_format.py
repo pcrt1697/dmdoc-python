@@ -2,12 +2,11 @@ import logging
 import os
 import re
 from enum import StrEnum
-from typing import Type
 
 from mdutils import MdUtils, MDList, TextUtils
 from pydantic import BaseModel, Field
 
-from dmdoc.core.formatter import Formatter
+from dmdoc.core.format import Format
 from dmdoc.core.sink.data_type import DataType, ArrayDataType, MapDataType, UnionDataType
 from dmdoc.core.sink.model import (
     Entity, DataModelObject, DataModelEnum, DocumentationMixin, find_reversed_references,
@@ -196,18 +195,18 @@ class MarkdownEnumWriter(MarkdownSectionWriter):
         )
 
 
-class MarkdownFormatterConfig(BaseModel):
+class MarkdownFormatConfig(BaseModel):
     output_path: str = Field(description="Output markdown file")
     overwrite: bool = Field(description="If true, existing files will be overwritten", default=False)
 
 
-class MarkdownFormatter(Formatter):
+class MarkdownFormat(Format):
 
-    _config: MarkdownFormatterConfig
+    _config: MarkdownFormatConfig
 
     @classmethod
-    def get_config_class(cls) -> Type[BaseModel]:
-        return MarkdownFormatterConfig
+    def get_config_class(cls) -> type[MarkdownFormatConfig]:
+        return MarkdownFormatConfig
 
     def _before_generate(self):
         if not self._config.output_path.endswith(".md"):

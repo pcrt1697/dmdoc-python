@@ -3,7 +3,7 @@ requires = ["setuptools >= 80.7.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name='dmdoc-python'
+name='dmdoc'
 version = '0.1'
 description = "Data Model documentation generator."
 readme = "README.md"
@@ -48,10 +48,11 @@ array = "dmdoc.core.sink.data_type:ArrayDataType"
 map = "dmdoc.core.sink.data_type:MapDataType"
 union = "dmdoc.core.sink.data_type:UnionDataType"
 object = "dmdoc.core.sink.data_type:ObjectDataType"
+# optional data types
 objectId = "dmdoc.core.sink.data_type:ObjectIdDataType"
 
 [project.entry-points."dmdoc.formats"]
-markdown = "dmdoc.core.formatter.markdown_formatter:MarkdownFormatter"
+markdown = "dmdoc.core.format.markdown_format:MarkdownFormat"
 
 [project.scripts]
 dmdoc = "dmdoc.cli.entrypoints:main"

@@ -1,6 +1,6 @@
 import enum
 import logging
-from typing import Type, Optional
+from typing import Optional
 
 from pydantic import BaseModel, Field
 from sqlalchemy import Column, Table, ForeignKeyConstraint
@@ -71,10 +71,10 @@ class SQLAlchemySource(Source):
         self._enums: dict[str, "DataModelEnum"] = {}
 
     @classmethod
-    def get_config_class(cls) -> Type[BaseModel]:
+    def get_config_class(cls) -> type[SQLAlchemySourceConfig]:
         return SQLAlchemySourceConfig
 
-    def _do_generate(self) -> DataModel:
+    def _do_parse(self) -> DataModel:
         base: type[DeclarativeBase] | registry = import_object(self._config.base)
         if isinstance(base, type) and issubclass(base, DeclarativeBase):
             # declarative mapping

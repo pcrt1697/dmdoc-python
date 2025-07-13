@@ -9,31 +9,38 @@ from dmdoc.core.sink.model import DataModel
 _logger = logging.getLogger(__name__)
 
 
-class Formatter(abc.ABC):
+class Format(abc.ABC):
 
     def __init__(self, config: BaseModel, data_model: DataModel):
         self._config = config
         self._data_model = data_model
 
     def generate(self):
+        """ Generate the documentation from sink DataModel. """
+
         _logger.info("Started output generation [%s]", self.__class__.__name__)
         self._before_generate()
         self._do_generate()
 
     def _before_generate(self):
+        """ Executed before precessing. Override if needed, e.g. to apply some validation. """
         pass
 
     @abc.abstractmethod
     def _do_generate(self):
+        """ Actual implementation to generate the documentation. """
         pass
 
     @classmethod
     @abc.abstractmethod
     def get_config_class(cls) -> Type[BaseModel]:
+        """ Returns the configuration class used by this format. """
         ...
 
     @classmethod
-    def create(cls: Type["Formatter"], data_model: DataModel, config_dict: dict) -> "Formatter":
+    def create(cls: Type["Format"], data_model: DataModel, config_dict: dict) -> "Format":
+        """ Utility method to create a new instance. """
+
         config_cls = cls.get_config_class()
         if config_cls is None:
             config = None
