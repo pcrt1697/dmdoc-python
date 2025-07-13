@@ -12,7 +12,7 @@ Doing this way, developers only need to write entity and field descriptions in t
 
 Main features:
 * A CLI to produce data model documentation;
-* Pluggable sources, sinks and data types.
+* Pluggable sources, formats and data types.
 
 ### Table of Content
 * [Overview](#overview)
@@ -34,7 +34,7 @@ Main features:
 ## Overview
 Definitions:
 * *Source*: represents the source technology, where the data model is defined (typically an ORM/ODM library).
-* *Format*: an object that parses data models to a documentation format.
+* *Format*: an object that generates documentation from a sink data model.
 * *Sink*: a shared model (Pydantic class) that represents a bridge between source and format.
 
 Basically, source entities are parsed and dumped to the sink.
@@ -74,11 +74,14 @@ dmdoc generate -s "path/to/source/config.yaml" -f "path/to/source/config.yaml"
 
 ### Extending dmdoc
 Each architecture component is pluggable: if an *out-of-the-box* source, data type of format
-does not fit the user use case, a custom component can be created:
+does not fit the user needs, a custom component can be created:
 
 Sources, data types and formats are registered as Python plug-in (entry points).
 The only thing to do is to extend the base abstractions and register a new entrypoint.
-For more details check out the related section of this document.
+For more details check out the proper section of this document:
+* [Creating custom sources](#creating-custom-sources)
+* [Creating custom formats](#creating-custom-formats)
+* [Creating custom data types](#creating-custom-data-types)
 
 ## Sources
 A source is identified by its name and must be registered as entrypoint at `dmdoc.sources`.
